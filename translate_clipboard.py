@@ -69,7 +69,7 @@ class Ui(QtWidgets.QDialog):
             "Click and drag on window edges to move, or the bottom right corner to resize"
         )
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
-        self.setAttribute(QtCore.Qt.WA_X11NetWmWindowTypeDialog)
+        self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
         self.clicked = False
 
         self.read_settings()
@@ -82,7 +82,7 @@ class Ui(QtWidgets.QDialog):
 
     @background_color.setter
     def background_color(self, color):
-        if color is not None or color.isValid():
+        if color is not None and color.isValid():
             self._background_color = color
             self.repaint()
             self.settings.setValue(BACKGROUND_COLOR, color.name(QtGui.QColor.HexArgb))
@@ -252,7 +252,7 @@ class Ui(QtWidgets.QDialog):
         return super(Ui, self).resizeEvent(event)
 
     def paintEvent(self, event):
-        QtGui.QPainter(self).fillRect(self.rect(), self._background_color)
+        QtGui.QPainter(self).fillRect(self.rect(), self.background_color)
 
     def mousePressEvent(self, event):
         self.old_pos = event.globalPos()
