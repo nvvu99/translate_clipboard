@@ -95,7 +95,9 @@ class Ui(QtWidgets.QDialog):
     def text_color(self, color):
         if color is not None and color.isValid():
             self.status.setStyleSheet(f"color: {color.name(QtGui.QColor.HexRgb)};")
-            self.display.setStyleSheet(f"color: {color.name(QtGui.QColor.HexRgb)};")
+            self.display.setStyleSheet(
+                f"QTextEdit {{color: {color.name(QtGui.QColor.HexRgb)};}}"
+            )
             self.settings.setValue(TEXT_COLOR, color.name(QtGui.QColor.HexRgb))
 
     @property
