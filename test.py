@@ -1,13 +1,10 @@
 import unittest
-from googletrans.translator import Translator
+from googletrans import translate_text
 
 
 class TestTranslator(unittest.TestCase):
-    def setUp(self):
-        self.translator = Translator()
-
     def test_translate(self):
-        self.assertEqual(self.translator.translate("solution", "vi").text, "giải pháp")
+        self.assertEqual(translate_text("vi", "solution"), "giải pháp")
 
 
 if __name__ == "__main__":

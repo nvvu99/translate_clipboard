@@ -1,7 +1,19 @@
 import sys
+from typing import Optional
+from PyQt5.QtCore import QSettings
+from PyQt5.QtGui import QColor, QCursor, QFont, QPainter, QTextCursor
 
-from googletrans import Translator, LANGUAGES
-from PyQt5 import Qt, QtCore, QtGui, QtWidgets, uic
+from PyQt5.QtWidgets import (
+    QColorDialog,
+    QDialog,
+    QFontDialog,
+    QInputDialog,
+    QLabel,
+    QWidget,
+)
+
+from googletrans import translate_text, LANGUAGES
+from PyQt5 import Qt, uic
 
 
 GEOMETRY = "Window/geometry"
@@ -13,23 +25,21 @@ FONT = "Window/font"
 TRANSLATION_ENABLED = "Translate/translation_enabled"
 DESTINATION_LANGUAGE = "Translate/destination_language"
 
-translator = Translator()
 
-
-def request_color(parent: QtWidgets.QWidget = None, initial: QtGui.QColor = None):
-    color = QtWidgets.QColorDialog(parent).getColor(initial=initial)
+def request_color(parent: Optional[QWidget] = None, initial: Optional[QColor] = None):
+    color = QColorDialog(parent).getColor(initial=initial)
     if color.isValid():
         return color
 
 
-def request_font(parent: QtWidgets.QWidget = None, initial: QtGui.QFont = None):
-    font, ok = QtWidgets.QFontDialog(parent).getFont(initial)
+def request_font(parent: Optional[QWidget] = None, initial: Optional[QFont] = None):
+    font, ok = QFontDialog(parent).getFont(initial)
     if ok:
         return font
 
 
 def request_item(parent, title, label, items, current=0):
-    item, ok = QtWidgets.QInputDialog().getItem(parent, title, label, items, current)
+    item, ok = QInputDialog().getItem(parent, title, label, items, current)
     if ok:
         return item
 
@@ -43,7 +53,7 @@ def request_double_value(
     max_value=2147483647,
     decimals=1,
 ):
-    value, ok = QtWidgets.QInputDialog().getDouble(
+    value, ok = QInputDialog().getDouble(
         parent,
         title,
         label,
@@ -55,12 +65,14 @@ def request_double_value(
     if ok:
         return value
 
+    return 0.0
 
-class Ui(QtWidgets.QDialog):
+
+class Ui(QDialog):
     def __init__(self):
         super(Ui, self).__init__()
         uic.loadUi("translate_clipboard.ui", self)
-        self.status = QtWidgets.QLabel(self)
+        self.status = QLabel(self)
         self.status.move(20, 0)
         self.display.customContextMenuRequested.connect(self.context_menu)
         self.display.textChanged.connect(self.on_display_text_changed)
@@ -68,8 +80,8 @@ class Ui(QtWidgets.QDialog):
             "Right click to change settings\n"
             "Click and drag on window edges to move, or the bottom right corner to resize"
         )
-        self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
-        self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
+        # self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
+        # self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
         self.clicked = False
 
         self.read_settings()
@@ -85,7 +97,7 @@ class Ui(QtWidgets.QDialog):
         if color is not None and color.isValid():
             self._background_color = color
             self.repaint()
-            self.settings.setValue(BACKGROUND_COLOR, color.name(QtGui.QColor.HexArgb))
+            self.settings.setValue(BACKGROUND_COLOR, color.name(QColor.HexArgb))
 
     @property
     def text_color(self):
@@ -94,11 +106,11 @@ class Ui(QtWidgets.QDialog):
     @text_color.setter
     def text_color(self, color):
         if color is not None and color.isValid():
-            self.status.setStyleSheet(f"color: {color.name(QtGui.QColor.HexRgb)};")
+            self.status.setStyleSheet(f"color: {color.name(QColor.HexRgb)};")
             self.display.setStyleSheet(
-                f"QTextEdit {{color: {color.name(QtGui.QColor.HexRgb)};}}"
+                f"QTextEdit {{color: {color.name(QColor.HexRgb)};}}"
             )
-            self.settings.setValue(TEXT_COLOR, color.name(QtGui.QColor.HexRgb))
+            self.settings.setValue(TEXT_COLOR, color.name(QColor.HexRgb))
 
     @property
     def text_font(self):
@@ -117,9 +129,13 @@ class Ui(QtWidgets.QDialog):
     @always_on_top.setter
     def always_on_top(self, always_on_top):
         self._always_on_top = bool(always_on_top)
-        self.setWindowFlag(QtCore.Qt.WindowStaysOnTopHint, self.always_on_top)
+        print(self._always_on_top)
+        # if self.always_on_top:
+        #     self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
+        # else:
+        #     self.setWindowFlags(self.windowFlags() & ~QtCore.Qt.WindowStaysOnTopHint)
+        self.settings.setValue(ALWAYS_ON_TOP, 1 if self.always_on_top else 0)
         self.show()
-        self.settings.setValue(ALWAYS_ON_TOP, self.always_on_top)
 
     def update_translation_status(self):
         if self.translation_enabled:
@@ -130,19 +146,19 @@ class Ui(QtWidgets.QDialog):
             self.status.setText("Translation is disabled")
 
     def read_settings(self):
-        self.settings = QtCore.QSettings(
+        self.settings = QSettings(
             "translate_clipboard.ini",
-            QtCore.QSettings.IniFormat,
+            QSettings.IniFormat,
         )
         self.setGeometry(self.settings.value(GEOMETRY, self.geometry()))
-        self.always_on_top = self.settings.value(ALWAYS_ON_TOP, False)
-        self.background_color = QtGui.QColor(
+        self.always_on_top = int(self.settings.value(ALWAYS_ON_TOP, 0))
+        self.background_color = QColor(
             self.settings.value(BACKGROUND_COLOR, self.palette().window().color())
         )
-        self.text_color = QtGui.QColor(
+        self.text_color = QColor(
             self.settings.value(TEXT_COLOR, self.palette().windowText().color())
         )
-        font = QtGui.QFont()
+        font = QFont()
         font.fromString(self.settings.value(FONT, self.display.font().toString()))
         self.display.setFont(font)
         self.translation_enabled = bool(self.settings.value(TRANSLATION_ENABLED, True))
@@ -182,7 +198,7 @@ class Ui(QtWidgets.QDialog):
         quit_action = menu.addAction("Quit")
         quit_action.setShortcut("Ctrl+Q")
         quit_action.triggered.connect(self.close)
-        menu.exec_(QtGui.QCursor.pos())
+        menu.exec_(QCursor.pos())
 
     @Qt.pyqtSlot()
     def toggle_translation_enabled(self):
@@ -230,31 +246,28 @@ class Ui(QtWidgets.QDialog):
 
     @Qt.pyqtSlot()
     def on_clipboard_changed(self):
-        raw_text = Qt.QApplication.clipboard().text()
+        raw_text = Qt.QApplication.clipboard().text().strip()
         if self.translation_enabled:
-            translated_text = translator.translate(
-                raw_text, dest=self.destination_language
-            ).text
+            translated_text = translate_text(self.destination_language, raw_text)
         else:
             translated_text = ""
         self.display.insertPlainText(
             f"{raw_text}\n"
             f"----------------------------------------\n"
             f"{translated_text}\n"
-            "****************************************\n"
-            "****************************************\n"
+            "****************************************\n\n"
         )
 
     @Qt.pyqtSlot()
     def on_display_text_changed(self):
-        self.display.moveCursor(QtGui.QTextCursor.End)
+        self.display.moveCursor(QTextCursor.End)
 
     def resizeEvent(self, event):
         self.status.resize(self.width() - 40, 30)
         return super(Ui, self).resizeEvent(event)
 
     def paintEvent(self, event):
-        QtGui.QPainter(self).fillRect(self.rect(), self.background_color)
+        QPainter(self).fillRect(self.rect(), self.background_color)
 
     def mousePressEvent(self, event):
         self.old_pos = event.globalPos()

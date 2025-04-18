@@ -3,6 +3,8 @@ import json
 
 
 class Translator:
+    """Using reverse-engineering to call Translate API"""
+
     def __init__(self):
         self.session = requests.session()
         self.session.headers[
@@ -45,6 +47,7 @@ class Translator:
             translation.text = temp_result[1][0][0][5][0][0]
         except Exception as e:
             print(e)
+            print(content)
         finally:
             return translation
 
